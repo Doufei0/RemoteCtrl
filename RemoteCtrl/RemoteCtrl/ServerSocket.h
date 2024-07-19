@@ -12,6 +12,25 @@ class CPackage
 {
 public:
 	CPackage() : sHead(0), nLength(0), sCmd(0), sSum(0) {}
+	CPackage(WORD Cmd, const BYTE* pData, size_t nSize) { // 用于包数据的打包重构
+		sHead = 0xFEFF;
+		nLength = nSize + 4;
+		sCmd = Cmd;
+		if (nSize > 0)
+		{
+			strData.resize(nSize);
+			memcpy((void*)strData.c_str(), pData, nSize);
+		}
+		else
+		{
+			strData.clear();
+		}
+		sSum = 0;
+		for (size_t i = 0; i < strData.size(); ++i)
+		{
+			sSum += BYTE(strData[i]) & 0xFF;
+		}
+	}
 	CPackage(const CPackage& p){
 		sHead = p.sHead;
 		nLength = p.nLength;
@@ -69,7 +88,6 @@ public:
 		nSize = 0;
 
 	}
-	~CPackage(){}
 	CPackage& operator=(const CPackage& p) {
 		if(this != &p)
 		{
@@ -81,6 +99,31 @@ public:
 		}
 		return *this;
 	}
+	~CPackage() {}
+
+	int Size() { // 返回整个包数据的大小
+		return nLength + 6; // +6 是因为 head占用2字节，自己nLength占用4字节
+	}
+	const char* Data() {
+		strOut.resize(nLength + 6);
+		BYTE* pData = (BYTE*)strOut.c_str();
+
+		*(WORD*)pData = sHead;
+		pData += 2;
+
+		*(DWORD*)pData = nLength;
+		pData += 4;
+
+		*(WORD*)pData = sCmd;
+		pData += 2;
+
+		memcpy(pData, strData.c_str(), strData.size());
+		pData += strData.size();
+
+		*(WORD*)pData = sSum;
+		return strOut.c_str();
+	}
+	
 
 public:
 	WORD sHead;			 // 包头固定标志位 0xFEFF  2字节
@@ -88,6 +131,7 @@ public:
 	WORD sCmd;			 // 控制命令	2字节
 	std::string strData; // 包数据
 	WORD sSum;			 // 和校验	2字节
+	std::string strOut;  // 整个包的数据
 };
 
 
@@ -226,6 +270,12 @@ public:
 		if (m_client == -1)
 			return false;
 		return send(m_client, pData, nSize, 0) > 0;
+	}
+
+	bool Send(CPackage& pack) {
+		if (m_client == -1)
+			return false;
+		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
 	}
 
 };
