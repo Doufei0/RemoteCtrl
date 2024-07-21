@@ -5,6 +5,7 @@
 #pragma once
 #include "pch.h"
 #include "framework.h"
+#include <string>
 
 constexpr int BUFFER_SIZE = 4096;
 
@@ -276,6 +277,15 @@ public:
 		if (m_client == -1)
 			return false;
 		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
+	}
+
+	bool GetFilePath(std::string& strPath) {
+		if (m_package.sCmd == 2)
+		{
+			strPath = m_package.strData;
+			return true;
+		}
+		return false;
 	}
 
 };
