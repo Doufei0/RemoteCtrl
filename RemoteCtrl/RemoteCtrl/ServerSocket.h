@@ -280,7 +280,8 @@ public:
 	}
 
 	bool GetFilePath(std::string& strPath) {
-		if (m_package.sCmd == 2)
+		if ((m_package.sCmd == 2) || (m_package.sCmd == 3)
+			|| (m_package.sCmd == 4))
 		{
 			strPath = m_package.strData;
 			return true;
