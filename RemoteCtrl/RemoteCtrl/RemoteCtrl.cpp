@@ -10,6 +10,7 @@
 #include <io.h>
 #include <stdio.h>
 #include <list>
+#include <atlimage.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -268,6 +269,61 @@ int MouseEvent() {
     return 0;
 }
 
+int SendScreen() {
+    CImage screen;
+    HDC hScreen = ::GetDC(NULL);
+    int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL); // 24 位的色彩
+    int nWidth = GetDeviceCaps(hScreen, HORZRES);
+    int nHeight = GetDeviceCaps(hScreen, VERTRES);
+    screen.Create(nWidth, nHeight, nBitPerPixel);
+    BitBlt(screen.GetDC(), 0, 0, 2560, 1600, hScreen, 0, 0, SRCCOPY);
+    ReleaseDC(NULL, hScreen);
+    HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, 0);
+    if (hMem == NULL)
+        return -1;
+    IStream* pStream = NULL;
+    HRESULT ret = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+    if (ret == S_OK)
+    {
+        // 把截图文件保存到内存流中，而不是保存到本地
+        screen.Save(pStream, Gdiplus::ImageFormatJPEG);
+        LARGE_INTEGER bg = { 0 };
+        pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+        PBYTE pData = (PBYTE)GlobalLock(hMem);
+        SIZE_T nSize = GlobalSize(hMem);
+        CPackage pack(6, pData, nSize);
+        CServerSocket::getInstance()->Send(pack);
+        GlobalUnlock(hMem);
+    }
+    pStream->Release();
+    GlobalFree(hMem);
+    screen.ReleaseDC();
+
+    //screen.Save(_T("test.jpg"), Gdiplus::ImageFormatJPEG);
+    // 这部分用于测试两种格式的时间开销和空间开销，选择其中一个
+    /*DWORD tick = GetTickCount64();
+    screen.Save(_T("test.png"), Gdiplus::ImageFormatPNG);
+    TRACE("png %d\r\n", GetTickCount64() - tick);
+    tick = GetTickCount64();
+    screen.Save(_T("test.jpg"), Gdiplus::ImageFormatJPEG);
+    TRACE("jpg %d\r\n", GetTickCount64() - tick);*/
+    //screen.Save(_T("test.png"), Gdiplus::ImageFormatPNG); // png 的开销更大
+
+    return 0;
+}
+
+int LockMachine() {
+    
+
+    return 0;
+}
+
+int UnlockMachine() {
+
+
+    return 0;
+}
+
 int main()
 {
     int nRetCode = 0;
@@ -309,7 +365,7 @@ int main()
             //    // TODO
             //}
 
-            int cmd = 1;
+            int cmd = 6;
             switch (cmd)
             {
             case 1: // 查看磁盘分区
@@ -326,6 +382,15 @@ int main()
                 break;
             case 5: // 鼠标操作
                 MouseEvent();
+            case 6: // 监控并发送屏幕内容-->发送屏幕的截图
+                SendScreen();
+                break;
+            case 7: // 锁机
+                LockMachine();
+                break;
+            case 8: // 解锁
+                UnlockMachine();
+                break;
             default:
                 break;
             }
