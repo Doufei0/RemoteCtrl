@@ -5,6 +5,7 @@
 #include "framework.h"
 #include "RemoteCtrl.h"
 #include "ServerSocket.h"
+#include "LockInfoDialog.h"
 #include <direct.h>
 #include <iostream>
 #include <io.h>
@@ -15,6 +16,9 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+CLockInfoDialog dlg;
+unsigned threadId = 0;
 
 typedef struct file_info{
     file_info (){
@@ -312,14 +316,63 @@ int SendScreen() {
     return 0;
 }
 
-int LockMachine() {
+unsigned _stdcall threadLockDlg(void* arg) {
+
+    dlg.Create(IDD_DIALOG_INFO, NULL);
+    dlg.ShowWindow(SW_SHOW);
+    // 屏蔽后台窗口
+    CRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = GetSystemMetrics(SM_CXFULLSCREEN);
+    rect.bottom = GetSystemMetrics(SM_CYFULLSCREEN);
+    dlg.MoveWindow(rect);
     
+    // 窗口置顶
+    //dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+
+    // 隐藏任务栏
+    ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_HIDE);
+
+    // 限制鼠标活动范围和功能
+    ShowCursor(false);
+    dlg.GetWindowRect(rect);
+    ClipCursor(rect);
+
+    // 消息循环
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+        // 按下按键，结束消息循环
+        if (msg.message == WM_KEYDOWN) {
+            TRACE("msg:%08X wparam:%08x lparam:%08X\r\n", msg.message, msg.wParam, msg.lParam);
+            if (msg.wParam == 0x1B) // 按下 ESC 退出
+                break;
+        }
+    }
+    ShowCursor(true);
+    ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);
+    dlg.DestroyWindow();
+    _endthreadex(0);
 
     return 0;
 }
 
-int UnlockMachine() {
+int LockMachine() {
 
+    if (dlg.m_hWnd == NULL || dlg.m_hWnd == INVALID_HANDLE_VALUE) {
+        _beginthreadex(NULL, 0, threadLockDlg, NULL, 0, &threadId);
+    }
+    CPackage pack(7, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
+int UnlockMachine() {
+    PostThreadMessage(threadId, WM_KEYDOWN, 0x1B, 0);
+    CPackage pack(7, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
 
     return 0;
 }
@@ -365,7 +418,7 @@ int main()
             //    // TODO
             //}
 
-            int cmd = 6;
+            int cmd = 7;
             switch (cmd)
             {
             case 1: // 查看磁盘分区
@@ -394,7 +447,12 @@ int main()
             default:
                 break;
             }
-
+            Sleep(5000);
+            UnlockMachine();
+            while (dlg.m_hWnd != NULL)
+            {
+                Sleep(10);
+            }
         }
     }
     else
