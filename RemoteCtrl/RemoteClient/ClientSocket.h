@@ -1,11 +1,12 @@
 /*
-	单例设计一个服务器
+	单例设计一个客户端
 */
 
 #pragma once
 #include "pch.h"
 #include "framework.h"
 #include <string>
+#include <vector>
 
 constexpr int BUFFER_SIZE = 4096;
 
@@ -149,19 +150,8 @@ typedef struct MouseEvent {
 
 }MOUSEEV, * PMOUSEEV;
 
-std::string GetErrorInfo(int wsaErrCode) {
-	std::string ret;
-	LPVOID lpMsgBuf = NULL;
-	FormatMessage(
-		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-		NULL,
-		wsaErrCode,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR)&lpMsgBuf, 0, NULL);
-	ret = (char*)lpMsgBuf;
-	LocalFree(lpMsgBuf);
-	return ret;
-}
+// 给出声明
+std::string GetErrInfo(int wsaErrCode); 
 
 class CClientSocket
 {
@@ -169,6 +159,7 @@ private:
 	static CClientSocket* m_instance;
 	SOCKET m_socket;
 	CPackage m_package;
+	std::vector<char> m_buffer;
 
 	CClientSocket& operator=(const CClientSocket& ss) {}
 	CClientSocket(const CClientSocket& ss) {
@@ -181,8 +172,7 @@ private:
 			MessageBox(NULL, _T("无法初始化套接字环境"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
 			exit(0);
 		}
-		m_socket = socket(PF_INET, SOCK_STREAM, 0);
-
+		m_buffer.resize(BUFFER_SIZE);
 	}
 	~CClientSocket() {
 		closesocket(m_socket);
@@ -228,25 +218,32 @@ public:
 	}
 
 	bool InitSocket(const std::string& strIPAddress) {
+		if (m_socket != INVALID_SOCKET)
+			CloseClient();
+		m_socket = socket(PF_INET, SOCK_STREAM, 0);
 		if (m_socket == -1)
 			return false;
+		TRACE("m_socket = %d\r\n", m_socket);
 
 		sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof(serv_addr));
 		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = inet_addr(strIPAddress.c_str());
+		serv_addr.sin_addr.s_addr = inet_addr(strIPAddress.c_str());//strIPAddress.c_str()
 		serv_addr.sin_port = htons(9999);
-		if (serv_addr.sin_addr.s_addr == INADDR_NONE);
+		//TRACE("%d  ----- none: %d", (unsigned)(serv_addr.sin_addr.s_addr), (unsigned)INADDR_NONE);
+		// 遇到的问题，会进入这个判断语句认为IP不存在
+		/*if (serv_addr.sin_addr.s_addr == -5);
 		{
 			AfxMessageBox("指定的IP地址不存在 !");
 			return false;
-		}
+		}*/
 		// connect
 		int ret = connect(m_socket, (sockaddr*)&serv_addr, sizeof(serv_addr));
+		
 		if (ret == -1)
 		{
 			AfxMessageBox("Connect Error !");
-			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrorInfo(WSAGetLastError()).c_str());
+			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
 			return false;
 		}
 		return true;
@@ -256,7 +253,8 @@ public:
 	int DealCommand() {
 		if (m_socket == -1)
 			return -1;
-		char* buffer = new char[BUFFER_SIZE];
+		//char* buffer = new char[BUFFER_SIZE];
+		char* buffer = m_buffer.data();
 		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;  //初始化一个索引 index，用于跟踪当前已接收数据在 buffer 中的位置
 		while (1)
@@ -283,6 +281,8 @@ public:
 	}
 
 	bool Send(const char* pData, int nSize) {
+		TRACE("m_socket = %d\r\n", m_socket);
+
 		if (m_socket == -1)
 			return false;
 		return send(m_socket, pData, nSize, 0) > 0;
@@ -311,6 +311,15 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	CPackage& GetPackage() {
+		return m_package;
+	}
+
+	void CloseClient() {
+		closesocket(m_socket);
+		m_socket = INVALID_SOCKET;
 	}
 
 };

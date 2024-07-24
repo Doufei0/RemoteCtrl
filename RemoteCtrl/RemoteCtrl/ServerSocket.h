@@ -239,9 +239,12 @@ public:
 	}
 
 	bool AcceptClient() {
+		TRACE("Enter Accept\r\n");
+
 		sockaddr_in clnt_addr;
 		int clnt_sz = sizeof(clnt_addr);
 		m_client = accept(m_socket, (sockaddr*)&clnt_addr, &clnt_sz);
+		TRACE("m_client = %d\r\n", m_client);
 		if (m_client == -1)
 		{
 			return false;
@@ -255,6 +258,11 @@ public:
 		if (m_client == -1)
 			return -1;
 		char* buffer = new char[BUFFER_SIZE];
+		if (buffer == NULL)
+		{
+			TRACE("内存不足\r\n");
+			return -2;
+		}
 		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;  //初始化一个索引 index，用于跟踪当前已接收数据在 buffer 中的位置
 		while (1)
@@ -262,7 +270,12 @@ public:
 			// 数据存储的起始位置buffer+index 开始，接收最大长度为BUFFER_SIZE-index的数据
 			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - index, 0); 
 			if (len <= 0)
+			{
+				delete[] buffer;
 				return -1;
+			}
+
+			TRACE("recv len: %d\r\n", len);
 			// 更新索引 index，使其指向 buffer 中下一个可用的位置
 			index += len;
 			//  len 更新为当前已接收数据的总长度
@@ -274,9 +287,11 @@ public:
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
 				// 更新索引 index，减少已处理的数据长度
 				index -= len;
+				delete[] buffer;
 				return m_package.sCmd;
 			}
 		}
+		delete[] buffer;
 		return -1;
 	}
 
@@ -300,6 +315,15 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	CPackage& GetPackage() {
+		return m_package;
+	}
+
+	void CloseClient() {
+		closesocket(m_client);
+		m_client = INVALID_SOCKET;
 	}
 
 	bool GetMouseEvent(MOUSEEV& mouse) {

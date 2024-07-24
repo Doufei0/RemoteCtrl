@@ -65,6 +65,7 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_test, &CRemoteClientDlg::OnBnClickedBtntest)
 END_MESSAGE_MAP()
 
 
@@ -153,3 +154,22 @@ HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CRemoteClientDlg::OnBnClickedBtntest()
+{
+	CClientSocket* pClient = CClientSocket::getInstance();
+	bool ret = pClient->InitSocket("127.0.0.1");
+	if (ret == false)
+	{
+		AfxMessageBox("网络初始化失败！");
+		return;
+	}
+	CPackage pack(1999, NULL, 0);
+	ret = pClient->Send(pack);
+	TRACE("Send ret = %d\r\n", ret);
+	int cmd = pClient->DealCommand();
+	TRACE("ACK: %d\r\n", cmd);
+	pClient->CloseClient();
+
+}
