@@ -52,6 +52,8 @@ END_MESSAGE_MAP()
 
 CRemoteClientDlg::CRemoteClientDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_REMOTECLIENT_DIALOG, pParent)
+	, m_server_address(0)
+	, m_nPort(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -59,6 +61,28 @@ CRemoteClientDlg::CRemoteClientDlg(CWnd* pParent /*=nullptr*/)
 void CRemoteClientDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_IPAddress(pDX, IDC_IPADDRESS_SERV, m_server_address);
+	DDX_Text(pDX, IDC_EDIT_PORT, m_nPort);
+	DDX_Control(pDX, IDC_TREE_DIR, m_Tree);
+}
+
+int CRemoteClientDlg::SendCommandPackage(int nCmd, BYTE* pData, size_t nLength)
+{
+	UpdateData();
+	CClientSocket* pClient = CClientSocket::getInstance();
+	bool ret = pClient->InitSocket(m_server_address, atoi((LPCSTR)m_nPort));
+	if (ret == false)
+	{
+		AfxMessageBox("网络初始化失败！");
+		return -1;
+	}
+	CPackage pack(nCmd, pData, nLength);
+	ret = pClient->Send(pack);
+	TRACE("Send ret = %d\r\n", ret);
+	int cmd = pClient->DealCommand();
+	TRACE("ACK: %d\r\n", cmd);
+	pClient->CloseClient();
+	return cmd;
 }
 
 BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
@@ -66,6 +90,7 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_test, &CRemoteClientDlg::OnBnClickedBtntest)
+	ON_BN_CLICKED(IDC_BTN_FILEINFO, &CRemoteClientDlg::OnBnClickedBtnFileinfo)
 END_MESSAGE_MAP()
 
 
@@ -101,6 +126,10 @@ BOOL CRemoteClientDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	UpdateData();
+	m_server_address = 0x7F000001;
+	m_nPort = _T("9999");
+	UpdateData(FALSE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -158,18 +187,35 @@ HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 
 void CRemoteClientDlg::OnBnClickedBtntest()
 {
-	CClientSocket* pClient = CClientSocket::getInstance();
-	bool ret = pClient->InitSocket("127.0.0.1");
-	if (ret == false)
+	SendCommandPackage(1999);
+
+}
+
+
+void CRemoteClientDlg::OnBnClickedBtnFileinfo()
+{
+	int ret = SendCommandPackage(1); // 发送命令1，代表查看磁盘分区MakeDriverInfo()
+	if (ret == -1)
 	{
-		AfxMessageBox("网络初始化失败！");
+		AfxMessageBox("命令处理失败！");
 		return;
 	}
-	CPackage pack(1999, NULL, 0);
-	ret = pClient->Send(pack);
-	TRACE("Send ret = %d\r\n", ret);
-	int cmd = pClient->DealCommand();
-	TRACE("ACK: %d\r\n", cmd);
-	pClient->CloseClient();
+	CClientSocket* pClient = CClientSocket::getInstance();
+	std::string drivers = pClient->GetPackage().strData;
+	std::string tmp;
+	m_Tree.DeleteAllItems();
+	for (size_t i = 0; i < drivers.size(); ++i)
+	{
+		if (drivers[i] == ',')
+		{
+			tmp += ":";
+			HTREEITEM hTemp = m_Tree.InsertItem(tmp.c_str(), TVI_ROOT, TVI_LAST);
+			m_Tree.InsertItem(NULL, hTemp, TVI_LAST);
+			tmp.clear();
+			continue;
+		}
+		tmp += drivers[i];
+	}
+
 
 }

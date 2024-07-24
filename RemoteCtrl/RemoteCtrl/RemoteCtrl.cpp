@@ -70,9 +70,10 @@ int MakeDriverInfo() {
             result += 'A' + i - 1; // result 就是拿到的磁盘符号
         }
     }
+    result += ','; // 最后也跟上一个逗号分隔
     CPackage pack(1, (BYTE*)result.c_str(), result.size()); //打包数据的构造函数重载
     Dump((BYTE*)pack.Data(), pack.Size());
-    //CServerSocket::getInstance()->Send(pack);
+    CServerSocket::getInstance()->Send(pack);
 
     return 0;
 }
