@@ -187,7 +187,8 @@ private:
 			MessageBox(NULL, _T("无法初始化套接字环境"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
 			exit(0);
 		}
-		m_buffer.resize(BUFFER_SIZE);
+		m_buffer.resize(BUFFER_SIZE); // 设置缓冲区大小
+		memset(m_buffer.data(), 0, BUFFER_SIZE);
 	}
 	~CClientSocket() {
 		closesocket(m_socket);
@@ -271,29 +272,47 @@ public:
 			return -1;
 		//char* buffer = new char[BUFFER_SIZE];
 		char* buffer = m_buffer.data();
-		memset(buffer, 0, BUFFER_SIZE);
-		size_t index = 0;  //初始化一个索引 index，用于跟踪当前已接收数据在 buffer 中的位置
+		static size_t index = 0;
 		while (1)
 		{
-			// 数据存储的起始位置buffer+index 开始，接收最大长度为BUFFER_SIZE-index的数据
 			size_t len = recv(m_socket, buffer + index, BUFFER_SIZE - index, 0);
-			if (len <= 0)
+			if ((len <= 0) && (index <= 0))
 				return -1;
-			// 更新索引 index，使其指向 buffer 中下一个可用的位置
 			index += len;
-			//  len 更新为当前已接收数据的总长度
 			len = index;
 			m_package = CPackage((BYTE*)buffer, len);
 			if (len > 0)
 			{
-				// 将 buffer 中已解析的数据移动到 buffer 的开始位置，以便后续接收新的数据
-				memmove(buffer, buffer + len, BUFFER_SIZE - len);
-				// 更新索引 index，减少已处理的数据长度
+				memmove(buffer, buffer + len, index - len);
 				index -= len;
 				return m_package.sCmd;
 			}
 		}
 		return -1;
+
+		//memset(buffer, 0, BUFFER_SIZE);
+		//size_t index = 0;  //初始化一个索引 index，用于跟踪当前已接收数据在 buffer 中的位置
+		//while (1)
+		//{
+		//	// 数据存储的起始位置buffer+index 开始，接收最大长度为BUFFER_SIZE-index的数据
+		//	size_t len = recv(m_socket, buffer + index, BUFFER_SIZE - index, 0);
+		//	if (len <= 0)
+		//		return -1;
+		//	// 更新索引 index，使其指向 buffer 中下一个可用的位置
+		//	index += len;
+		//	//  len 更新为当前已接收数据的总长度
+		//	len = index;
+		//	m_package = CPackage((BYTE*)buffer, len);
+		//	if (len > 0)
+		//	{
+		//		// 将 buffer 中已解析的数据移动到 buffer 的开始位置，以便后续接收新的数据
+		//		memmove(buffer, buffer + len, BUFFER_SIZE - len);
+		//		// 更新索引 index，减少已处理的数据长度
+		//		index -= len;
+		//		return m_package.sCmd;
+		//	}
+		//}
+		//return -1;
 	}
 
 	bool Send(const char* pData, int nSize) {

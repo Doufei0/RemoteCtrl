@@ -96,6 +96,9 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_NOTIFY(NM_DBLCLK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMDblclkTreeDir)
 	ON_NOTIFY(NM_CLICK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMClickTreeDir)
 	ON_NOTIFY(NM_RCLICK, IDC_LIST_FILE, &CRemoteClientDlg::OnNMRClickListFile)
+	ON_COMMAND(ID_DOWNLOAD_FILE, &CRemoteClientDlg::OnDownloadFile)
+	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)
+	ON_COMMAND(ID_RUN_FILE, &CRemoteClientDlg::OnRunFile)
 END_MESSAGE_MAP()
 
 
@@ -337,4 +340,73 @@ void CRemoteClientDlg::OnNMRClickListFile(NMHDR* pNMHDR, LRESULT* pResult)
 	{
 		pPupup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, ptMouse.x, ptMouse.y, this);
 	}
+}
+
+
+void CRemoteClientDlg::OnDownloadFile()
+{
+	// 选中右边列表中的文件
+	int nListSelected = m_List.GetSelectionMark();
+	// 获取文件的文件名
+	CString strFileName = m_List.GetItemText(nListSelected, 0);
+	// 弹出一个对话框，选择下载指定文件到本地的哪个位置
+	CFileDialog dlg(FALSE, NULL,
+		strFileName, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+		NULL, this);
+	// 模态的，当前窗口不结束，无法点击后面的窗口
+	if (dlg.DoModal() == IDOK)
+	{
+		FILE* pFile = fopen(dlg.GetPathName(), "wb+");
+		if (pFile == NULL)
+		{
+			AfxMessageBox("本地无权限保存该文件，或文件无法创建！");
+			return;
+		}
+		// 获取当前文件所在的左边磁盘
+		HTREEITEM hSelected = m_Tree.GetSelectedItem();
+		// 生成当前文件的路径
+		strFileName = GetPath(hSelected) + strFileName;
+		TRACE("%s\r\n", LPCSTR(strFileName));
+		int ret = SendCommandPackage(4, false, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength());
+		if (ret < 0)
+		{
+			AfxMessageBox("执行下载失败！");
+			TRACE("执行下载失败, ret = %d\r\n", ret);
+			return;
+		}
+		CClientSocket* pClient = CClientSocket::getInstance();
+		long long nLength = *(long long*)CClientSocket::getInstance()->GetPackage().strData.c_str();
+		if (nLength == 0)
+		{
+			AfxMessageBox("文件长度为零或无法读取文件！");
+			return;
+		}
+		long long nCount = 0;
+		while (nCount < nLength)
+		{
+			ret = pClient->DealCommand();
+			if (ret < 0)
+			{
+				AfxMessageBox("传输失败！");
+				TRACE("传输失败, ret = %d\r\n", ret);
+				break;
+			}
+			fwrite(pClient->GetPackage().strData.c_str(), 1, pClient->GetPackage().strData.size(), pFile);
+			nCount += pClient->GetPackage().strData.size();
+		}
+		fclose(pFile);
+		pClient->CloseClient();
+	}
+}
+
+
+void CRemoteClientDlg::OnDeleteFile()
+{
+	// TODO: 在此添加命令处理程序代码
+}
+
+
+void CRemoteClientDlg::OnRunFile()
+{
+	// TODO: 在此添加命令处理程序代码
 }

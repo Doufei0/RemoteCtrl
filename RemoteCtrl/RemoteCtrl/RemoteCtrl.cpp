@@ -136,15 +136,16 @@ int DownloadFile() {
     errno_t err = fopen_s(&pFile, strPath.c_str(), "rb");
     if (err != 0)
     {
-        CPackage pack(4, (BYTE*)data, 8); // 8代表8字节长度，longlong类型占用8字节
+        CPackage pack(4, (BYTE*)&data, 8); // 8代表8字节长度，longlong类型占用8字节
         CServerSocket::getInstance()->Send(pack);
         return -1;
     }
-    if (pFile == NULL)
+    if (pFile != NULL)
     {
         fseek(pFile, 0, SEEK_END);
         data = _ftelli64(pFile);
-        CPackage head(4, (BYTE*)data, 8);
+        CPackage head(4, (BYTE*)&data, 8);
+        CServerSocket::getInstance()->Send(head);
         fseek(pFile, 0, SEEK_SET);
         char buffer[1024] = "";
         size_t rlen = 0;
