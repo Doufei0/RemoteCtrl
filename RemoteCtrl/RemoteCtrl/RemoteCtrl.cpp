@@ -20,20 +20,6 @@
 CLockInfoDialog dlg;
 unsigned threadId = 0;
 
-typedef struct file_info{
-    file_info (){
-        IsInvalid = FALSE;
-        IsDirectory = -1;
-        HasNext = TRUE;
-        memset(szFileName, 0, sizeof(szFileName));
-    }
-
-    BOOL IsInvalid;     //是否有效
-    BOOL IsDirectory;   // 是否是目录 0否 1是
-    BOOL HasNext;       // 是否有下一个文件 0否 1是
-    char szFileName[256];   // 文件名
-
-}FILEINFO, *PFILEINFO;
 
 // 唯一的应用程序对象
 
@@ -90,22 +76,26 @@ int MakeDirectoryInfo() {
     if (_chdir(strPath.c_str()) != 0)
     {
         FILEINFO finfo;
-        finfo.IsInvalid = TRUE;
-        finfo.IsDirectory = TRUE;
+        //finfo.IsInvalid = TRUE;
+        //finfo.IsDirectory = TRUE;
         finfo.HasNext = FALSE;
-        memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
+        //memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
         //listFileInfos.push_back(finfo);  // 不用列表的形式，而是读到一个文件就发一个文件
         // 随读 随发
-        CPackage pack(2, (BYTE*) & finfo, sizeof(finfo));
+        CPackage pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
         OutputDebugString(_T("没有权限，访问目录！"));
         return -2;
     }
     _finddata_t fdata;
     int hfind = 0;
-    if (hfind = (_findfirst("*", &fdata)) == -1)
+    if ((hfind = _findfirst("*", &fdata)) == -1)
     {
         OutputDebugString(_T("没有找到任何文件！"));
+        FILEINFO finfo;
+        finfo.HasNext = FALSE;
+        CPackage pack(2, (BYTE*)&finfo, sizeof(finfo));
+        CServerSocket::getInstance()->Send(pack);
         return -3;
     }
     // 上面是各种文件查找出错的情况
@@ -115,11 +105,12 @@ int MakeDirectoryInfo() {
         FILEINFO finfo;
         finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
         memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
-        //listFileInfos.push_back(finfo);
+        TRACE("%s\r\n", finfo.szFileName);
         CPackage pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
     } while (!_findnext(hfind, &fdata));
 
+    // 最后发一个空的数据包
     FILEINFO finfo;
     finfo.HasNext = FALSE;
     CPackage pack(2, (BYTE*)&finfo, sizeof(finfo));
