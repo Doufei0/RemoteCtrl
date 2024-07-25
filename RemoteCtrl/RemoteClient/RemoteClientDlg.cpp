@@ -302,9 +302,33 @@ void CRemoteClientDlg::LoadFileInfo()
 	pClient->CloseClient();
 }
 
+void CRemoteClientDlg::FileRefresh()
+{
+	HTREEITEM hTree = m_Tree.GetSelectedItem();
+	CString strPath = GetPath(hTree);
+	m_List.DeleteAllItems();
+	int nCmd = SendCommandPackage(2, false, (BYTE*)(LPCSTR)strPath, strPath.GetLength());
+	PFILEINFO pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPackage().strData.c_str();
+	CClientSocket* pClient = CClientSocket::getInstance();
+	while (pInfo->HasNext)
+	{
+		TRACE("[%s] isdir %d\r\n", pInfo->szFileName, pInfo->IsDirectory);
+		if (!pInfo->IsDirectory) // 不是文件夹目录
+		{
+			m_List.InsertItem(0, pInfo->szFileName);
+		}
+		int cmd = pClient->DealCommand();
+		TRACE("ACK :%d\r\n", cmd);
+		if (cmd < 0)
+			break;
+		pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPackage().strData.c_str();
+	}
+	pClient->CloseClient();
+}
+
 void CRemoteClientDlg::OnNMDblclkTreeDir(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// TODO: 在此添加控件通知处理程序代码
+	// 双击文件夹显示文件夹里内容
 	*pResult = 0;
 	LoadFileInfo();
 }
@@ -312,8 +336,9 @@ void CRemoteClientDlg::OnNMDblclkTreeDir(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CRemoteClientDlg::OnNMClickTreeDir(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// TODO: 在此添加控件通知处理程序代码
+	// 单击文件夹显示文件夹里内容
 	*pResult = 0;
+	// 加载文件夹中的内容
 	LoadFileInfo();
 }
 
@@ -402,11 +427,37 @@ void CRemoteClientDlg::OnDownloadFile()
 
 void CRemoteClientDlg::OnDeleteFile()
 {
-	// TODO: 在此添加命令处理程序代码
+	// 删除文件
+	HTREEITEM hSelected = m_Tree.GetSelectedItem();
+	CString strPath = GetPath(hSelected);
+	int nSelected = m_List.GetSelectionMark();
+	CString strFileName = m_List.GetItemText(nSelected, 0);
+	// 文件的路径
+	strFileName = strPath + strFileName;
+	int ret = SendCommandPackage(9, true, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength());
+	if (ret < 0)
+	{
+		AfxMessageBox("删除文件执行失败！");
+		return;
+	}
+	// TODO : 删除之后刷新文件界面，把刚才删除的不显示
+	FileRefresh();
 }
 
 
 void CRemoteClientDlg::OnRunFile()
 {
-	// TODO: 在此添加命令处理程序代码
+	HTREEITEM hSelected = m_Tree.GetSelectedItem();
+	CString strPath = GetPath(hSelected);
+	int nSelected = m_List.GetSelectionMark();
+	CString strFileName = m_List.GetItemText(nSelected, 0);
+	// 文件的路径
+	strFileName = strPath + strFileName;
+	int ret = SendCommandPackage(3, true, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength());
+	if (ret < 0)
+	{
+		AfxMessageBox("打开文件执行失败！");
+		return;
+	}
+
 }

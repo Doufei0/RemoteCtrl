@@ -24,11 +24,16 @@ private:
 	CString GetPath(HTREEITEM hTree);
 	void DeleteTreeChildrenItem(HTREEITEM hTree);
 	void LoadFileInfo();
+	void FileRefresh();
 	// 1 查看磁盘分区
 	// 2 查看指定目录下的文件
-	// 打开文件
-	// 下载文件
-	// 
+	// 3 打开文件
+	// 4 下载文件
+	// 5 鼠标操作
+	// 6 发送截图流
+	// 7 锁机
+	// 8 解锁
+	// 9 删除文件
 	// 
 	// 返回命令号，如果小于0代表错误
 	int SendCommandPackage(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0);

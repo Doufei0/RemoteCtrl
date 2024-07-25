@@ -324,8 +324,9 @@ public:
 	}
 
 	bool GetFilePath(std::string& strPath) {
+		// 当命令是2349，与文件相关的操作时，获取对应的路径
 		if ((m_package.sCmd == 2) || (m_package.sCmd == 3)
-			|| (m_package.sCmd == 4))
+			|| (m_package.sCmd == 4) || (m_package.sCmd == 9))
 		{
 			strPath = m_package.strData;
 			return true;

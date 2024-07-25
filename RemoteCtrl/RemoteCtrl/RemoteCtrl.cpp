@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <list>
 #include <atlimage.h>
+#include <stdlib.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -369,6 +370,23 @@ int UnlockMachine() {
     return 0;
 }
 
+int DeleteLocalFile() {
+    std::string strPath;
+    CServerSocket::getInstance()->GetFilePath(strPath);
+    TCHAR sPath[MAX_PATH] = _T("");
+    //mbstowcs(sPath, strPath.c_str(), strPath.size());
+    //size_t len = strPath.size();
+    //mbstowcs_s(&len, sPath, _countof(sPath), strPath.c_str(), len); // 有中文不行
+    // 第二种API方法
+    MultiByteToWideChar(
+        CP_ACP, 0, strPath.c_str(), strPath.size(), sPath,
+        sizeof(sPath) / sizeof(TCHAR));
+    DeleteFileA(strPath.c_str());
+    CPackage pack(9, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
 int connectTest() {
     CPackage pack(1999, NULL, 0);
     CServerSocket::getInstance()->Send(pack);
@@ -401,6 +419,9 @@ int ExcuteCommand(int cmd) {
         break;
     case 8: // 解锁
         ret = UnlockMachine();
+        break;
+    case 9 :
+        ret = DeleteLocalFile();
         break;
     case 1999:
         connectTest();
