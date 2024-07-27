@@ -93,6 +93,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -168,6 +169,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -192,6 +194,7 @@
     <ClInclude Include="RemoteClient.h" />
     <ClInclude Include="RemoteClientDlg.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="StatusDlg.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
@@ -204,6 +207,7 @@
     </ClCompile>
     <ClCompile Include="RemoteClient.cpp" />
     <ClCompile Include="RemoteClientDlg.cpp" />
+    <ClCompile Include="StatusDlg.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RemoteClient.rc" />
