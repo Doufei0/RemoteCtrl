@@ -5,6 +5,7 @@
 #pragma once
 #include "ClientSocket.h"
 #include "StatusDlg.h"
+#include "WatchDialog.h"
 
 #define WM_SEND_PACKET (WM_USER + 1)	// 发送数据包消息
 
@@ -14,6 +15,12 @@ class CRemoteClientDlg : public CDialogEx
 // 构造
 public:
 	CRemoteClientDlg(CWnd* pParent = nullptr);	// 标准构造函数
+	bool isFull() const {
+		return m_isFull;
+	}
+	CImage& GetImage() {
+		return m_image;
+	}
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -73,4 +80,6 @@ public:
 	afx_msg void OnDeleteFile();
 	afx_msg void OnRunFile();
 	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnBnClickedBtnWatch();
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };

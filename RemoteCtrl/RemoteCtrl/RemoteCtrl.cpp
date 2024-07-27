@@ -274,7 +274,9 @@ int SendScreen() {
     int nWidth = GetDeviceCaps(hScreen, HORZRES);
     int nHeight = GetDeviceCaps(hScreen, VERTRES);
     screen.Create(nWidth, nHeight, nBitPerPixel);
-    BitBlt(screen.GetDC(), 0, 0, 2560, 1600, hScreen, 0, 0, SRCCOPY);
+    //BitBlt(screen.GetDC(), 0, 0, 2560, 1600, hScreen, 0, 0, SRCCOPY);
+    BitBlt(screen.GetDC(), 0, 0, 3840, 2160, hScreen, 0, 0, SRCCOPY);
+
     ReleaseDC(NULL, hScreen);
     HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, 0);
     if (hMem == NULL)
@@ -298,15 +300,14 @@ int SendScreen() {
     screen.ReleaseDC();
 
     //screen.Save(_T("test.jpg"), Gdiplus::ImageFormatJPEG);
-    // 这部分用于测试两种格式的时间开销和空间开销，选择其中一个
-    /*DWORD tick = GetTickCount64();
-    screen.Save(_T("test.png"), Gdiplus::ImageFormatPNG);
-    TRACE("png %d\r\n", GetTickCount64() - tick);
-    tick = GetTickCount64();
-    screen.Save(_T("test.jpg"), Gdiplus::ImageFormatJPEG);
-    TRACE("jpg %d\r\n", GetTickCount64() - tick);*/
+    ////这部分用于测试两种格式的时间开销和空间开销，选择其中一个
+    ///*DWORD tick = GetTickCount64();
+    //screen.Save(_T("test.png"), Gdiplus::ImageFormatPNG);
+    //TRACE("png %d\r\n", GetTickCount64() - tick);
+    //tick = GetTickCount64();
+    //screen.Save(_T("test.jpg"), Gdiplus::ImageFormatJPEG);
+    //TRACE("jpg %d\r\n", GetTickCount64() - tick);*/
     //screen.Save(_T("test.png"), Gdiplus::ImageFormatPNG); // png 的开销更大
-
     return 0;
 }
 

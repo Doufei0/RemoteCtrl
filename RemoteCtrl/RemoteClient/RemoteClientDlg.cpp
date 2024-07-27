@@ -100,6 +100,8 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)
 	ON_COMMAND(ID_RUN_FILE, &CRemoteClientDlg::OnRunFile)
 	ON_MESSAGE(WM_SEND_PACKET, &CRemoteClientDlg::OnSendPacket)
+	ON_BN_CLICKED(IDC_BTN_WATCH, &CRemoteClientDlg::OnBnClickedBtnWatch)
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -258,10 +260,27 @@ void CRemoteClientDlg::threadWatchData()
 			{
 				if (m_isFull == false)	// 缓存中没有数据
 				{
-					// 接收数据
+					// 接收数据到缓存中
 					BYTE* pData = (BYTE*)pClient->GetPackage().strData.c_str();
 					// TODO ： 把接收到的数据存入CImage
-					m_isFull = true;
+					HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+					if (hMem == NULL)
+					{
+						TRACE("内存不足！");
+						Sleep(1);
+						continue;
+					}
+					IStream* pStream = NULL;
+					HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+					if (hRet == S_OK)
+					{
+						ULONG length = 0;
+						pStream->Write(pData, pClient->GetPackage().strData.size(), &length);
+						LARGE_INTEGER bg = { 0 };
+						pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+						m_image.Load(pStream);
+						m_isFull = true;
+					}
 				}
 			}
 		}
@@ -545,3 +564,21 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 	return ret;
 }
 
+
+
+void CRemoteClientDlg::OnBnClickedBtnWatch()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	_beginthread(CRemoteClientDlg::threadEntryForWatchData, 0, this);
+	CWatchDialog dlg(this);
+	dlg.DoModal();
+
+}
+
+
+void CRemoteClientDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	CDialogEx::OnTimer(nIDEvent);
+}
