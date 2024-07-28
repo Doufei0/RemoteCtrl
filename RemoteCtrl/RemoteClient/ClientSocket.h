@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-constexpr int BUFFER_SIZE = 4096;
+constexpr int BUFFER_SIZE = 819200;
 
 class CPackage
 {

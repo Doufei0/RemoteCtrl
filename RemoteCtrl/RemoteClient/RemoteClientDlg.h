@@ -21,6 +21,9 @@ public:
 	CImage& GetImage() {
 		return m_image;
 	}
+	void SetImageStatus(bool isFull = false) {
+		m_isFull = isFull;
+	}
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME

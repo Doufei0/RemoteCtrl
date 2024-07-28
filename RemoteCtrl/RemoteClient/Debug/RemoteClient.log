@@ -1,6 +1,2 @@
-﻿  RemoteClient.cpp
-  RemoteClientDlg.cpp
-  StatusDlg.cpp
-  WatchDialog.cpp
-  正在生成代码...
+﻿  WatchDialog.cpp
   RemoteClient.vcxproj -> D:\Cpp\Project_EDY\RemoteCtrl\Debug\RemoteClient.exe

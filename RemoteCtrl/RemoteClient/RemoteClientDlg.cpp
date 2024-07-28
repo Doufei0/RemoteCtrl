@@ -243,51 +243,49 @@ void CRemoteClientDlg::threadEntryForWatchData(void* arg)
 
 void CRemoteClientDlg::threadWatchData()
 {
+	Sleep(50);
 	CClientSocket* pClient = NULL;
 	do
 	{
 		pClient = CClientSocket::getInstance();
 	} while (pClient == NULL);
-
+	ULONGLONG tick = GetTickCount64();
 	while (true)
 	{
-		CPackage pack(6, NULL, 0);	// 准备指令6，监控屏幕截图并发送
-		bool ret = pClient->Send(pack);
-		if (ret)	// 发送成功
+		if (m_isFull == false)	// 缓存中没有数据
 		{
-			int cmd = pClient->DealCommand();
-			if (cmd == 6)	// 发送屏幕截图命令
+			// 准备指令6，监控屏幕截图并发送
+			int ret = SendMessage(WM_SEND_PACKET, 6 << 1 | 1);
+			if (ret == 6)	// 发送成功
 			{
-				if (m_isFull == false)	// 缓存中没有数据
+				// 接收数据到缓存中
+				BYTE* pData = (BYTE*)pClient->GetPackage().strData.c_str();
+				HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+				if (hMem == NULL)
 				{
-					// 接收数据到缓存中
-					BYTE* pData = (BYTE*)pClient->GetPackage().strData.c_str();
-					// TODO ： 把接收到的数据存入CImage
-					HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
-					if (hMem == NULL)
-					{
-						TRACE("内存不足！");
-						Sleep(1);
-						continue;
-					}
-					IStream* pStream = NULL;
-					HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
-					if (hRet == S_OK)
-					{
-						ULONG length = 0;
-						pStream->Write(pData, pClient->GetPackage().strData.size(), &length);
-						LARGE_INTEGER bg = { 0 };
-						pStream->Seek(bg, STREAM_SEEK_SET, NULL);
-						m_image.Load(pStream);
-						m_isFull = true;
-					}
+					TRACE("内存不足！");
+					Sleep(1);
+					continue;
 				}
+				IStream* pStream = NULL;
+				HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+				if (hRet == S_OK)
+				{
+					ULONG length = 0;
+					pStream->Write(pData, pClient->GetPackage().strData.size(), &length);
+					LARGE_INTEGER bg = { 0 };
+					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+					m_image.Load(pStream);
+					m_isFull = true;
+				}
+			}
+			else { // 避免CPU拉满一直循环
+				Sleep(1);
 			}
 		}
 		else { // 避免CPU拉满一直循环
 			Sleep(1);
 		}
-		
 	}
 }
 
@@ -325,7 +323,7 @@ void CRemoteClientDlg::threadEntryDownFile()
 		// 生成当前文件的路径
 		strFileName = GetPath(hSelected) + strFileName;
 		TRACE("%s\r\n", LPCSTR(strFileName));
-		//int ret = SendCommandPackage(4, false, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength());
+		//int ret = SendCommandPackage(4, false, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength()); // 新开的线程的消息循环机制
 		int ret = SendMessage(WM_SEND_PACKET, 4 << 1 | 0, (LPARAM)(LPCSTR)strFileName);
 		if (ret < 0)
 		{
@@ -460,24 +458,22 @@ void CRemoteClientDlg::FileRefresh()
 }
 
 
-
+// 双击文件夹显示文件夹里内容
 void CRemoteClientDlg::OnNMDblclkTreeDir(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// 双击文件夹显示文件夹里内容
 	*pResult = 0;
 	LoadFileInfo();
 }
 
-
+// 单击文件夹显示文件夹里内容
 void CRemoteClientDlg::OnNMClickTreeDir(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// 单击文件夹显示文件夹里内容
 	*pResult = 0;
 	// 加载文件夹中的内容
 	LoadFileInfo();
 }
 
-
+// 右键某个文件执行对应功能
 void CRemoteClientDlg::OnNMRClickListFile(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
@@ -502,7 +498,6 @@ void CRemoteClientDlg::OnNMRClickListFile(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-
 // 右键单击下载文件，弹出文件对话框下载到指定目录
 void CRemoteClientDlg::OnDownloadFile()
 {
@@ -518,7 +513,7 @@ void CRemoteClientDlg::OnDownloadFile()
 	m_dlgStatus.SetActiveWindow();
 }
 
-
+// 右键单击删除文件
 void CRemoteClientDlg::OnDeleteFile()
 {
 	// 删除文件
@@ -538,7 +533,7 @@ void CRemoteClientDlg::OnDeleteFile()
 	FileRefresh();
 }
 
-
+// 右键单击打开文件
 void CRemoteClientDlg::OnRunFile()
 {
 	HTREEITEM hSelected = m_Tree.GetSelectedItem();
@@ -558,9 +553,24 @@ void CRemoteClientDlg::OnRunFile()
 
 LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 {
-	CString strFileName = (LPCSTR)lParam;
-	int ret = SendCommandPackage(wParam >> 1, wParam & 1, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength());
-
+	int ret = 0;
+	int cmd = wParam >> 1;
+	switch (cmd)
+	{
+	case 4:
+		{
+			CString strFileName = (LPCSTR)lParam;
+			ret = SendCommandPackage(cmd, wParam & 1, (BYTE*)(LPCSTR)strFileName, strFileName.GetLength());
+		}
+		break;
+	case 6: 
+		{
+			ret = SendCommandPackage(cmd, wParam & 1);
+		}
+		break;
+	default:
+		ret = -1;
+	}
 	return ret;
 }
 
@@ -568,9 +578,9 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 
 void CRemoteClientDlg::OnBnClickedBtnWatch()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	_beginthread(CRemoteClientDlg::threadEntryForWatchData, 0, this);
 	CWatchDialog dlg(this);
+
+	_beginthread(CRemoteClientDlg::threadEntryForWatchData, 0, this);
 	dlg.DoModal();
 
 }
