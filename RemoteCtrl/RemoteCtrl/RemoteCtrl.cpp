@@ -268,15 +268,22 @@ int MouseEvent() {
 }
 
 int SendScreen() {
-    CImage screen;
+    CImage screen, scaledImage;
     HDC hScreen = ::GetDC(NULL);
     int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL); // 24 位的色彩
     int nWidth = GetDeviceCaps(hScreen, HORZRES);
     int nHeight = GetDeviceCaps(hScreen, VERTRES);
     screen.Create(nWidth, nHeight, nBitPerPixel);
-    //BitBlt(screen.GetDC(), 0, 0, 2560, 1600, hScreen, 0, 0, SRCCOPY);
-    BitBlt(screen.GetDC(), 0, 0, 3840, 2160, hScreen, 0, 0, SRCCOPY);
+    //BitBlt(screen.GetDC(), 0, 0, 2560, 1600, hScreen, 0, 0, SRCCOPY); // 笔记本电脑
 
+    // 有可能是截图体积过大，导致网络传输压力大，画面卡顿；试图压缩截图
+
+    /* scaledImage.Create(nWidth / 2, nHeight / 2, nBitPerPixel);
+    BitBlt(screen.GetDC(), 0, 0, 3840, 2160, hScreen, 0, 0, SRCCOPY);
+    screen.StretchBlt(scaledImage.GetDC(), 0, 0, nWidth / 2, nHeight / 2, 0, 0, nWidth, nHeight, SRCCOPY);
+    scaledImage.ReleaseDC();*/
+
+    BitBlt(screen.GetDC(), 0, 0, nWidth, nHeight, hScreen, 0, 0, SRCCOPY);
     ReleaseDC(NULL, hScreen);
     HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, 0);
     if (hMem == NULL)

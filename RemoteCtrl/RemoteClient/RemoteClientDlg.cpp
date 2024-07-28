@@ -279,11 +279,11 @@ void CRemoteClientDlg::threadWatchData()
 					m_isFull = true;
 				}
 			}
-			else { // 避免CPU拉满一直循环
+			else { 
 				Sleep(1);
 			}
 		}
-		else { // 避免CPU拉满一直循环
+		else { 
 			Sleep(1);
 		}
 	}
