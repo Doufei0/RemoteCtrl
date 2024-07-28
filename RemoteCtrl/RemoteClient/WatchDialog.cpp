@@ -15,7 +15,8 @@ IMPLEMENT_DYNAMIC(CWatchDialog, CDialogEx)
 CWatchDialog::CWatchDialog(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DLG_WATCH, pParent)
 {
-
+	m_nObjWidth = -1;
+	m_nObjHeight = -1;
 }
 
 CWatchDialog::~CWatchDialog()
@@ -56,8 +57,11 @@ CPoint CWatchDialog::UserPoint2RemoteScreenPoint(CPoint& point, bool isScreen)
 	m_picture.GetWindowRect(clientRect);
 	int width0 = clientRect.Width();
 	int height0 = clientRect.Height();
-	int width = 3840;
-	int height = 2160;
+	// 这里的宽和高是被控方的宽和高
+	//int width = 3840;
+	int width = m_nObjWidth;
+	//int height = 2160;
+	int height = m_nObjHeight;
 	int x = point.x * width / width0;
 	int y = point.y * height / height0;
 
@@ -87,6 +91,14 @@ void CWatchDialog::OnTimer(UINT_PTR nIDEvent)
 			CRect rect;
 			m_picture.GetWindowRect(rect);
 			// 窗口缩放
+			if (m_nObjWidth == -1)
+			{
+				m_nObjWidth = pParent->GetImage().GetWidth();
+			}
+			if (m_nObjHeight == -1)
+			{
+				m_nObjHeight = pParent->GetImage().GetHeight();
+			}
 			pParent->GetImage().StretchBlt(
 				m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
 			m_picture.InvalidateRect(NULL);
@@ -101,123 +113,144 @@ void CWatchDialog::OnTimer(UINT_PTR nIDEvent)
 // 左键按下
 void CWatchDialog::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 0;	// 左键
-	event.nAction = 2;	// 按下
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
-
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 0;	// 左键
+		event.nAction = 2;	// 按下
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
 // 左键双击
 void CWatchDialog::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 0;	// 左键
-	event.nAction = 1;	// 双击
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 0;	// 左键
+		event.nAction = 1;	// 双击
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnLButtonDblClk(nFlags, point);
 }
 
 // 左键弹起
 void CWatchDialog::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 0;	// 左键
-	event.nAction = 3;	// 弹起  
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 0;	// 左键
+		event.nAction = 3;	// 弹起  
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
 
 
 void CWatchDialog::OnRButtonDown(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 1;	// 右键
-	event.nAction = 2;	// 按下
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 1;	// 右键
+		event.nAction = 2;	// 按下
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnRButtonDown(nFlags, point);
 }
 
 
 void CWatchDialog::OnRButtonDblClk(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 1;	// 右键
-	event.nAction = 1;	// 双击
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 1;	// 右键
+		event.nAction = 1;	// 双击
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnRButtonDblClk(nFlags, point);
 }
 
 
 void CWatchDialog::OnRButtonUp(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 1;	// 右键	
-	event.nAction = 3;	// 弹起
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 1;	// 右键	
+		event.nAction = 3;	// 弹起
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnRButtonUp(nFlags, point);
 }
 
 
 void CWatchDialog::OnMouseMove(UINT nFlags, CPoint point)
 {
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 8;	// 没有按键
-	event.nAction = 0;	// 移动
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	//pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 8;	// 没有按键
+		event.nAction = 0;	// 移动
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
 	CDialogEx::OnMouseMove(nFlags, point);
 }
 
 
 void CWatchDialog::OnStnClickedWatch()
 {
-	CPoint point;
-	GetCursorPos(&point);
-	// 坐标转换
-	CPoint remote = UserPoint2RemoteScreenPoint(point, true);
-	// 封装
-	MOUSEEV event;
-	event.ptXY = remote;
-	event.nButton = 0;
-	event.nAction = 0;	// 单击
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	if ((m_nObjWidth != -1) && (m_nObjHeight != -1)) {
+		CPoint point;
+		GetCursorPos(&point);
+		// 坐标转换
+		CPoint remote = UserPoint2RemoteScreenPoint(point, true);
+		// 封装
+		MOUSEEV event;
+		event.ptXY = remote;
+		event.nButton = 0;
+		event.nAction = 0;	// 单击
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+	}
+}
 
 
+void CWatchDialog::OnOK()
+{
+	// TODO: 在此添加专用代码和/或调用基类
+
+	//CDialogEx::OnOK();
 }

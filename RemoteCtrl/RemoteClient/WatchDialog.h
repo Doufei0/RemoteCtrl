@@ -21,6 +21,11 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 
 	DECLARE_MESSAGE_MAP()
+
+public:
+	int m_nObjWidth;
+	int m_nObjHeight;
+	
 public:
 	CPoint UserPoint2RemoteScreenPoint(CPoint& point, bool isScreen = false);
 	virtual BOOL OnInitDialog();
@@ -34,4 +39,5 @@ public:
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnStnClickedWatch();
+	virtual void OnOK();
 };

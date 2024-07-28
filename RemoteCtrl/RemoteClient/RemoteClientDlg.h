@@ -32,9 +32,11 @@ public:
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
+
 private:
 	CImage m_image; // 缓存
 	bool m_isFull;	// 缓存中是否有数据	true表示有数据 false表示无数据
+	bool m_isClosed;	// 监控是否打开
 
 private:
 	static void threadEntryForWatchData(void* arg);
